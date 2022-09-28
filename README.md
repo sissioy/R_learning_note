@@ -18,7 +18,9 @@ This is a assignment record of Statistic Computing and Empirical Methods(SCEM)
   ```
 - What if I want to create matrix element in different orders.
 
-- Why is solve function able to do $Y^{-1}X$ solve(y_mtx,x_mtx)
+- Why is solve function able to do $Y^{-1}X$ using solve(y_mtx,x_mtx) function
+
+
 
 
   
