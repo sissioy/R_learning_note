@@ -1,0 +1,43 @@
+---
+title: "RMarkdown01"
+author: "Siyu"
+output: html_document
+---
+
+## Set vectors
+```{r}
+# Create a data frame in R Scripts
+
+# prepare
+rm(list=ls())
+
+# 
+animals <- c("Snake","Ostrich","Cat","Spider")
+num_legs <- c(0,2,4,8)
+animals_df <- data.frame(animals,num_legs)
+```
+
+## Print
+```{r}
+animals_df
+```
+
+```{r}
+library(rmarkdown)
+
+if (pandoc_available())
+  cat("pandoc", as.character(pandoc_version()), "is available!\n")
+
+if (pandoc_available("1.12.3"))
+  cat("required version of pandoc is available!\n")
+
+```
+
+
+## Problem
+```{r}
+y_mtx <- matrix(seq(1,4),2,2)
+y_mtx
+```
+
+
