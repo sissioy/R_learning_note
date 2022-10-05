@@ -20,6 +20,8 @@ This is a assignment record of Statistic Computing and Empirical Methods(SCEM)
 
 - Why is solve function able to do $Y^{-1}X$ using solve(y_mtx,x_mtx) function
 
+- Cannot download tidyverse package.
+  Reinstall in current place and not to install it in Anaconda.
 
 
 

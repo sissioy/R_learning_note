@@ -1,0 +1,149 @@
+---
+title: "Assignment 02"
+output: html_document
+date: "2022-10-05"
+---
+
+## Assignment 02 
+
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(Stat2Data)
+
+
+data("Hawks")
+select(Hawks,Wing,Weight,Tail)
+hSF <- select(Hawks,Wing,Weight,Tail)
+print(head(Hawks))
+hSF <- Hawks %<% filter(Species=="RT"&&Weight>=1000)
+hSF <- Hawks %>% filter(Species=="RT"&&Weight>=1000)
+hSF <- Hawks %<% filter(Species=="RT") %<% filter(Weight>=1000)
+?filter
+hSF <- Hawks %>% filter(Species=="RT"&Weight>=1000)
+hSF <- Hawks %>% filter(Species=="RT"&Weight>=1000) %>% select(Wing,Weight,Tail)
+print(hSF)
+arrange(hSF)
+head(sort(hSF))
+head(arrange(hSF))
+?arrange
+head(arrange(hSF,Wing))
+head(Hawks)
+hawkSpeciesNameCodes <- data.frame(['CH','RT','SS',"Cooper's","Red-tailed","Sharp-shinned"])
+hawkSpeciesNameCodes <- data.frame(c('CH','RT','SS'),c("Cooper's","Red-tailed","Sharp-shinned"))
+print(head(hawkSpeciesNameCodes))
+hawkSpeciesNameCodes <- data.frame(species_code<-c('CH','RT','SS'),species_name_full<-c("Cooper's","Red-tailed","Sharp-shinned"))
+print(head(hawkSpeciesNameCodes))
+species_code<-c('CH','RT','SS')
+species_name_full<-c("Cooper's","Red-tailed","Sharp-shinned")
+hawkSpeciesNameCodes <- data.frame(species_code,species_name_full)
+print(hawkSpeciesNameCodes))
+print(hawkSpeciesNameCodes)
+?rename
+print(head(Hawks))
+rename(hawkSpeciesNameCodes,c(species_code="Species"))
+rename(hawkSpeciesNameCodes,c("species_code"="Species"))
+rlang::last_error()
+rename(hawkSpeciesNameCodes,species_code="Species")
+rename(hawkSpeciesNameCodes,species_code=Species)
+View(hawkSpeciesNameCodes)
+View(hawkSpeciesNameCodes)
+View(hawkSpeciesNameCodes)
+rename(hawkSpeciesNameCodes,species_code=Species)
+View(hawkSpeciesNameCodes)
+rename(hawkSpeciesNameCodes,species_code="Species")
+awkSpeciesNameCodes<-rename(hawkSpeciesNameCodes,species_code="Species")
+awkSpeciesNameCodes<-rename(hawkSpeciesNameCodes,Species=species_code)
+hawkSpeciesNameCodes<-rename(hawkSpeciesNameCodes,Species=species_code)
+rm(awkSpeciesNameCodes)
+tmp <- left_join(Hawks,hawkSpeciesNameCodes)
+print(head(tmp))
+tmp <- select(Hawks,-Species)
+tmp <- rename(Hawks,Species=species_name_full)
+tmp <- rename(Hawks,Species=all_of(species_name_full))
+rm(species_name_full)
+rm(species_code)
+tmp <- rename(Hawks,Species=all_of(species_name_full))
+tmp <- rename(Hawks,Species=
+species_name_full)
+print(head(tmp)
+print(head(tmp))
+print(head(tmp))
+tmp <-rename(Hawks,hawkSpeciesNameCodes)
+rlang::last_error()
+tmp <- left_join(Hawks,hawkSpeciesNameCodes)
+hawksFullName <- select(tmp,species_name_full,Wing,Weight)
+head(hawksFullName)
+?mutae
+?mutate
+hawksWithBMI <- Hawks %>% mutate(bird_BMI) %>% select(Species,bird_BMI)
+hawksWithBMI <- Hawks %>% mutate(bird_BMI=1000*Weight/Wing/Wing) %>% select(Species,bird_BMI)
+print(head(hawksWithBMI,8))
+print(head(arrange(hawksWithBMI,bird_BMI),8))
+?arrange
+print(head(arrange(hawksWithBMI,desc(bird_BMI),8))
+print(head(arrange(hawksWithBMI,desc(bird_BMI),8)))
+print(head(arrange(hawksWithBMI,desc(bird_BMI)),8))
+?summarize
+num_rows <- Hawks %>% group_by(Species) %>% summarise(row)
+
+### 1.5 
+Hawks %>% group_by(Species) %>% summarise(num_rows=n(),mn_wing=mean(Wing,na.rm=TRUE),md_wing=median(Wing,na.rm=TRUE),t_mn_ting=mean(Wing,trim=0.1),b_wt_ratio=max(Wing/Tail,na.rm=TRUE))
+
+tmp <- Hawks %>% group_by(Species) %>% summarise(across(9:Crop,~sum(is.na(.x))))
+> print(tmp)
+````
+
+
+
+```{r}
+impute_by_mean<-function(x){
+mu<-mean(x,na.rm=1) # first compute the mean of x
+impute_f<-function(z){ # coordinate-wise imputation
+if(is.na(z)){
+return(mu) # if z is na replace with mean
+}else{
+return(z) # otherwise leave in place
+}
+}
+return(map_dbl(x,impute_f)) # apply the map function to impute across vector
+}
+```
+
+```{r}
+impute_by_median<-function(x){
+mu<-median(x,na.rm=1) # first compute the mean of x
+impute_f<-function(z){ # coordinate-wise imputation
+if(is.na(z)){
+return(mu) # if z is na replace with mean
+}else{
+return(z) # otherwise leave in place
+}
+}
+return(map_dbl(x,impute_f)) # apply the map function to impute across vector
+}
+```
+
+```{r}
+df_xy<-function(x){
+  tmp<- seq(0,10,by=0.1)
+  tmp2<- tmp*5+1
+  return(data.frame(tmp[1:x-1],tmp2[1:x-1]))
+}
+
+```
+
+```{r}
+> x <- seq(0,10,by=0.1)
+> y <- x*5+1
+> df_xy <- data.frame(x,y)
+> df_xy %>% head(5)
+```
+
+```{r}
+sometimes_missing<- function(x,y){
+  if(x%%5==0) return(NA)
+  
+  return(y)
+}
+```
