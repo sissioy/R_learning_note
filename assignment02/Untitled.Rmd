@@ -92,7 +92,7 @@ Hawks %>% group_by(Species) %>% summarise(num_rows=n(),mn_wing=mean(Wing,na.rm=T
 
 tmp <- Hawks %>% group_by(Species) %>% summarise(across(9:Crop,~sum(is.na(.x))))
 > print(tmp)
-````
+```
 
 
 
@@ -134,10 +134,10 @@ df_xy<-function(x){
 ```
 
 ```{r}
-> x <- seq(0,10,by=0.1)
-> y <- x*5+1
-> df_xy <- data.frame(x,y)
-> df_xy %>% head(5)
+x <- seq(0,10,by=0.1)
+y <- x*5+1
+df_xy <- data.frame(x,y)
+df_xy %>% head(5)
 ```
 
 ```{r}
@@ -146,4 +146,64 @@ sometimes_missing<- function(x,y){
   
   return(y)
 }
+```
+
+```{r}
+df_xy_missing <- df_xy %>% mutate(y=map2_dbl(seq(101),y<-x*5+1,~sometimes_missing(.x,.y)))
+
+
+df_xy_imputed <- df_xy_missing %>% mutate(y=impute_by_median(df_xy_missing$y))
+
+```
+
+```{r}
+file_name<-"HockeyLeague.xlsx"
+folder_path<-"/Users/syo/Downloads/"
+file_path<-paste(folder_path,file_name,sep="")
+wins_data_frame<-read_excel(file_path,sheet="Wins")
+
+
+
+wins_tidy <- pivot_longer(data = wins_data_frame,
+cols = '1990':'2020',
+names_to = "year",
+values_to = "sp_count")
+colnames(wins_tidy)[1] = 'species'
+wins_tidy <- separate(wins_tidy, sp_count ,c("Wins","Total"),sep=" of ",convert = TRUE)
+
+wins_tidy %>% dim()
+
+```
+
+```{r}
+losses_tidy <- pivot_longer(data = losses_data_frame,
+cols = '1990':'2020',
+names_to = "year",
+values_to = "sp_count")
+colnames(losses_tidy)[1] = 'species'
+losses_tidy <- separate(losses_tidy, sp_count ,c("Losses","Total"),sep=" of ",convert = TRUE)
+
+losses_tidy %>% dim()
+```
+
+```{r}
+hockey_df <- inner_join(losses_tidy,wins_tidy)
+colnames(hockey_df)[1] = 'Team'
+colnames(hockey_df)[2] = 'Year'
+hockey_df <- hockey_df %>% mutate(Draws=Total-Wins-Losses)
+hockey_df <-hockey_df %>% mutate(Wins_rt=Wins/Total)
+hockey_df <- hockey_df %>% mutate(Losses_rt=Losses/Total)
+hockey_df <- hockey_df %>% mutate(Draws_rt=Draws/Total)
+```
+
+
+
+
+```{r}
+hockey_df %>% group_by(Team) %>% summarise(W_md=median(Wins_rt),W_mn=mean(Wins_rt),L_md=median(Losses_rt),L_mn=mean(Losses_rt),D_md=median(Draws_rt),D_mn=mean(Draws_rt)) %>% arrange(desc(W_md))
+```
+
+```{r}
+> univar_plot <- wins_tidy %>% filter(species=="Ducks") %>% ggplot(aes(x=Wins))+xlab("Wins")
+> univar_plot+geom_histogram(binwidth = 1)+ylab("Count")
 ```
