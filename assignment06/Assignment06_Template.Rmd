@@ -92,6 +92,18 @@ data <- data.frame(beta) %>%
 ## 1.1 (Q7)
 
 ```{r}
+dataQ7 <- data %>%
+  pivot_longer(cols=c("Expectation","samplemean"),
+               names_to='name',values_to="count") %>%
+  ggplot(aea(beta,count))+
+  geom_point(aes(color=name)) +
+  theme_bw() +
+  xlab('beta') + ylab('value')
+dataQ7
+```
+
+
+```{r}
 p<-ggplot()+
   geom_point(data = data,aes(x=beta,y=expectation),colour='red')
 data$samplemean <- unlist(data$samplemean)
