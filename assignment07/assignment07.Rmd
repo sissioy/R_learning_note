@@ -1,0 +1,193 @@
+---
+title: "Assignment07"
+output: pdf_document
+date: "2022-11-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+RedTailedDf <- Hawks %>% filter(Species=="RT") %>%
+  select(Weight, Tail, Wing)
+
+
+n = length(RedTailedDf$Tail)
+mu_mle <- mean(RedTailedDf$Tail, na.rm=TRUE)
+sigma_mle <- sd(RedTailedDf$Tail, na.rm=TRUE) * sqrt(n/(n-1))
+sigma_squared_mle <- sigma_mle^2;
+```
+
+```{r}
+# indices
+len <- seq(mu_mle-3*sigma_mle, mu_mle+3*sigma_mle, sigma_mle*0.001)
+# plot estimated density function
+color <- c("MLE density"="red", "Kernel density"="blue")
+estimated_density <- data.frame(Length=len, Density=dnorm(len, mean=mu_mle, sd=sigma_mle))
+plot_obj <- ggplot() + geom_line(data=estimated_density,
+                                 aes(x=Length, y=Density, color="MLE density"))
+# kernel density plot of the sample
+plot_obj + geom_density(data=RedTailedDf,
+                        aes(x=Tail, color="Kernel density")) +
+  labs(y="Tail length (mm)") +
+  theme_bw() + scale_color_manual(values = color)
+```
+
+```{r}
+set.seed(0)
+sample_size_seq <- seq(5, 100, 5)
+num_trials_per_size <- 1000
+mu_0 <- 1
+sigma_0 <- 3
+compute_V_mle <- function(x){ return(mean((x-mean(x))^2)) }; compute_V_U <- function(x){
+  n <- length(x)
+  return (compute_V_mle(x)*n/(n-1))
+}
+df <- crossing(sample_size=sample_size_seq, trials=seq(num_trials_per_size) ) %>% # create samples
+mutate(samples = map(sample_size, ~rnorm(.x, mean = mu_0, sd = sigma_0) ) ) %>% # compute V_mle
+mutate(V_mle = map_dbl(samples, compute_V_mle)) %>% # compute V_U
+mutate(V_U = map_dbl(samples, compute_V_U))
+# compute bias
+df_bias <- df %>% group_by(sample_size) %>%
+  summarise(V_mle_bias=mean(V_mle)-sigma_0^2, V_U_bias=mean(V_U)-sigma_0^2)
+
+```
+
+
+```{r}
+df_bias_longer <- df_bias %>%
+pivot_longer(c(V_mle_bias, V_U_bias), names_to = 'Estimator', values_to = 'Bias' ) %>%  mutate(Estimator=case_when(Estimator=='V_mle_bias'~'MLE',
+                             Estimator=='V_U_bias'~'Unbiased estimator'))
+df_bias_longer %>% ggplot(aes(x=sample_size, y=Bias, color=Estimator)) + geom_line() +
+  theme_bw() + xlab('Sample Size')
+
+```
+
+```{r}
+set.seed(0)
+sample_size_seq <- seq(5, 100, 5)
+num_trials_per_size <- 10000
+mu_0 <- 1
+sigma_0 <- 3
+compute_V_mle <- function(x){ return( mean( (x-mean(x))^2 ) ) }; compute_V_U <- function(x){
+  n <- length(x)
+  return (compute_V_mle(x)*n/(n-1))
+}
+df <- crossing(sample_size=sample_size_seq, trials=seq(num_trials_per_size) ) %>% # create samples
+mutate(samples = map(sample_size, ~rnorm(.x, mean = mu_0, sd = sigma_0) ) ) %>% # compute V_U_sqrt
+mutate(V_U_sqrt = map_dbl(samples, ~sqrt(compute_V_U(.x) ))) # compute bias
+df_bias <- df %>% group_by(sample_size) %>%
+  summarise(V_U_sqrt_bias=mean(V_U_sqrt)-sigma_0)
+```
+
+```{r}
+df_bias_longer <- df_bias %>%
+pivot_longer(c(V_U_sqrt_bias), names_to = 'Estimator', values_to = 'Bias' ) %>% mutate(Estimator=case_when(Estimator=='V_U_sqrt_bias'~'sqrt(V_U)'))
+df_bias_longer %>% ggplot(aes(x=sample_size, y=Bias, color=Estimator)) + geom_line() +
+  theme_bw() + xlab('Sample Size')
+
+```
+
+```{r}
+lambda_0 = 0.5
+num_trials_per_sample_size=1000
+df = crossing(sample_size=seq(10, 1000, 10), trials=seq(num_trials_per_sample_size)) %>% # create samples
+mutate(samples=map(sample_size, ~rpois(.x, lambda_0)) ) %>%
+# compute MLE
+  mutate(lambda_mle = map_dbl(samples, ~mean(.x)))
+df_mse <- df %>% group_by(sample_size) %>%
+  summarise(mse=mean( (lambda_mle-lambda_0)^2 ))
+ggplot() + geom_line(data=df_mse, aes(x=sample_size, y=mse)) +
+  theme_bw() + xlab('Sample Size')
+```
+
+
+```{r}
+real_data <- read.csv("VonBortkiewicz.csv")
+# note: if the .csv file is not in your current folder, then # you will need to specify the folder where this file is in.
+# MLE:
+lambda_mle <- mean(real_data$fatalities )
+print(lambda_mle)
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
