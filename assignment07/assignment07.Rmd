@@ -113,81 +113,166 @@ print(lambda_mle)
 ```
 
 ```{r}
+predict_prob_no_fatalities <- dpois(0, lambda_mle)
+print(predict_prob_no_fatalities)
+```
 
+```{r}
+set.seed(0)
+lambda_0 = 0.5
+sample_size <- 1000
+df <- data.frame(trials=seq(1000)) %>%
+# create samples
+mutate(sample= map(trials, ~rpois(sample_size, lambda_0))) %>% # compute MLE
+mutate(MLE = map_dbl(sample, mean) ) %>%
+# the quality of interest
+mutate(quantity = sqrt(sample_size/lambda_0)*(MLE-lambda_0) )
+# create kernel density plot
+ggplot(df, aes(x=quantity) ) + geom_density() +
+  theme_bw()
+```
+
+```{r}
+CustomerPurchase <- read.csv("CustomerPurchase.csv")
+# note: if the .csv file is not in your current folder, then # you will need to specify the folder where this file is in.
+CustomerPurchase <- CustomerPurchase %>%
+  mutate(time_diff=lead(Time)-Time)
+head(CustomerPurchase)
+
+```
+
+```{r}
+lambda_mle = 1/mean(CustomerPurchase$time_diff, na.rm=TRUE)
+lambda_mle
 
 ```
 
 ```{r}
 
+prob_excess_one_minute <- 1 - pexp(60, rate=lambda_mle)
+prob_excess_one_minute
+```
+
+```{r}
+alpha <- 0.05
+# adelie_flippers <- 
+sample_size <- length(adelie_flippers) # adelie_flippers is a given vector sample_mean <- mean(adelie_flippers)
+sample_sd <- sd(adelie_flippers)
+t <- qt(1-alpha/2,df=sample_size-1)
+# confidence interval
+confidence_interval_l <- sample_mean-t*sample_sd/sqrt(sample_size) confidence_interval_u <- sample_mean+t*sample_sd/sqrt(sample_size) confidence_interval <- c(confidence_interval_l,confidence_interval_u) confidence_interval
 
 ```
 
 ```{r}
 
+weights <- Hawks %>% filter(Species=="RT" ) %>%
+select(Weight) %>%
+filter(complete.cases(Weight)) %>%
+# removing NAs; you can also use discard(is.na) after calling pull() 
+  pull()
+```
+
+```{r}
+alpha <- 0.01
+sample_size <- length(weights) # adelie_flippers is a given vector 
+sample_mean <- mean(weights)
+sample_sd <- sd(weights)
+t <- qt(1-alpha/2,df=sample_size-1)
+confidence_interval_l <-sample_mean-t*sample_sd/sqrt(sample_size)
+confidence_interval_u <-sample_mean+t*sample_sd/sqrt(sample_size)
+confidence_interval <-c(confidence_interval_l,confidence_interval_u)
+confidence_interval
+```
+
+```{r}
+ggplot(data=data.frame(Weights=weights), aes(x=Weights)) + geom_density() +
+  theme_bw()
 
 ```
 
 ```{r}
-
-
-```
-
-```{r}
-
+ggplot(data=data.frame(Weights=weights), aes(sample=Weights)) + stat_qq() +
+  theme_bw() + stat_qq_line(color="blue")
 
 ```
 
 ```{r}
-
-
-```
-
-```{r}
-
+Hawks%>%filter(Species=="RT")%>%nrow()
 
 ```
 
 ```{r}
-
-
-```
-
-```{r}
-
-
-```
-
-```{r}
-
-
-```
-
-```{r}
-
+student_t_confidence_interval<-function(sample,confidence_level){ sample<-sample[!is.na(sample)] # remove any missing values 
+n<-length(sample) # compute sample size
+mu_est<-mean(sample) # compute sample mean
+sig_est<-sd(sample) # compute sample sd
+alpha = 1-confidence_level # alpha from gamma
+t<-qt(1-alpha/2,df=n-1) # get student t quantile 
+l=mu_est-(t/sqrt(n))*sig_est # lower 
+u=mu_est+(t/sqrt(n))*sig_est # upper
+return(c(l,u))
+}
 
 ```
 
 ```{r}
+num_trials <- 100000
+sample_size <- 30
+mu_0 <- 1
+sigma_0 <- 3
+alpha <- 0.05
+set.seed(0) # set random seed for reproducibility
 
+single_alpha_coverage_simulation_df <- data.frame(trial=seq(num_trials)) %>%
+  # generate random Gaussian samples:
+  mutate(sample=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0))) %>% 
+  # generate confidence intervals:
+  mutate(ci_interval=map(.x=sample, .f=~student_t_confidence_interval(.x,1-alpha)))%>% 
+  # check if interval covers mu_0:
+  mutate(cover=map_lgl(.x=ci_interval, .f=~((min(.x)<=mu_0)&(max(.x)>=mu_0))))%>%
+  # compute interval length:
+  mutate(ci_length=map_dbl(.x=ci_interval, .f=~(max(.x)-min(.x))))
+
+# estimate of coverage probability:
+single_alpha_coverage_simulation_df %>%
+  pull(cover) %>%
+  mean()
 
 ```
 
 ```{r}
+probs_CI_contains_mu <- function(gamma){ 
+num_trials <- 100000
+sample_size <- 30
+mu_0 <- 1
+sigma_0 <- 3
+alpha <- 1-gamma
+single_alpha_coverage_simulation_df <- data.frame(trial=seq(num_trials)) %>%
+# generate random Gaussian samples:
+  mutate(sample=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0))) %>% 
+  # generate confidence intervals:
+  mutate(ci_interval=map(.x=sample, .f=~student_t_confidence_interval(.x,1-alpha)))%>% 
+  # check if interval covers mu_0:
+  mutate(cover=map_lgl(.x=ci_interval, .f=~((min(.x)<=mu_0)&(max(.x)>=mu_0))))%>%
 
+  # compute interval length:
+  mutate(ci_length=map_dbl(.x=ci_interval, .f=~(max(.x)-min(.x))))
+
+# estimate of coverage probability:
+single_alpha_coverage_simulation_df %>%
+  pull(cover) %>%
+  mean()
+}
+
+df <- data.frame(gamma=seq(0.8,1,0.02)) %>%
+  mutate(probs=map_dbl(gamma, probs_CI_contains_mu))
 
 ```
 
 ```{r}
-
-
-```
-
-```{r}
-
+ggplot() + geom_point(data=df, aes(x=gamma, y=probs)) +
+  theme_bw()
 
 ```
 
-```{r}
-
-
-```

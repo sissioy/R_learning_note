@@ -1,0 +1,292 @@
+---
+title: "assignment08"
+output: pdf_document
+date: "2022-11-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+
+library(PairedData) # you might need to install the package first 
+data("Barley")
+detach('package:PairedData', unload=TRUE)
+detach('package:MASS', unload=TRUE)
+# unload package because it contains another select() function
+head(Barley, 4)
+```
+
+```{r}
+t.test(Barley$Glabron, Barley$Velvet, paired = TRUE, conf.level = 0.99)
+
+
+```
+
+```{r}
+diffs <- Barley$Glabron - Barley$Velvet
+cohens_d<-mean(diffs)/sd(diffs)
+cohens_d
+
+```
+
+```{r}
+
+Barley %>% nrow()
+```
+
+
+```{r}
+Barley %>%
+  mutate(diff=Glabron-Velvet) %>%
+  ggplot(aes(x=diff)) + geom_density() + theme_bw() +
+  labs(x="Differences of yields (bushels)",y="Density")
+
+```
+
+```{r}
+Barley %>%
+  mutate(diff=Glabron-Velvet) %>%
+  ggplot(aes(sample=diff))+theme_bw()+
+  stat_qq()+stat_qq_line(color="blue")+
+  labs(x="Theoretical", y="Sample")
+
+```
+
+```{r}
+library(palmerpenguins)
+peng_AC<-penguins %>%
+  drop_na(species,body_mass_g) %>%
+  filter(species !="Gentoo")
+head(peng_AC %>% select(species, flipper_length_mm, body_mass_g), 5)
+t.test(body_mass_g~species, data=peng_AC,var.equal = TRUE)
+```
+
+```{r}
+val_col <- "body_mass_g"
+group_col <- "species"
+data <- peng_AC
+data_new <- data %>%
+# rename the columns; note that you can not drop the "!!" (why?) 
+  rename(group=(!!group_col),val=(!!val_col))%>%
+  group_by(group) %>%
+  drop_na(val) %>%
+  summarise(mn=mean(val))
+data_new
+
+```
+
+```{r}
+data_new$mn[2]
+```
+
+```{r}
+t_test_function <- function(data, val_col, group_col, val_equal=TRUE){ stats <- data %>%
+  # rename the columns; note that you can not drop !! (why?)
+  rename(group=(!!group_col),val=(!!val_col))%>%
+  group_by(group) %>%
+  drop_na(val) %>%
+  summarise(mn=mean(val), vr=var(val), n=n())
+
+pooled_sd <- sqrt(((stats$n[1]-1)*stats$vr[1]+(stats$n[2]-1)*stats$vr[2])/
+                      (stats$n[1]+stats$n[2]-2))
+
+if (val_equal){ # unpaired student t-test # test statistic 
+  t_stat<-(stats$mn[1]-stats$mn[2])/
+(pooled_sd*sqrt(1/stats$n[1]+1/stats$n[2])) # degree of freedom 
+  dof<-stats$n[1]+stats$n[2]-2
+
+} else { # we can also implement Welch's t-test as follows # test statistic
+  t_stat=(stats$mn[1]-stats$mn[2])/
+  sqrt(stats$vr[1]/stats$n[1]+stats$vr[2]/stats$n[2])
+  # degree of freedom 
+  dof=(stats$vr[1]/stats$n[1]+stats$vr[2]/stats$n[2])^2/(
+        (stats$vr[1]/stats$n[1])^2/(stats$n[1]-1)+
+          (stats$vr[2]/stats$n[2])^2/(stats$n[2]-1)
+  ) 
+}
+
+  p_val<- 2*(1-pt(abs(t_stat),df=dof)) # effect size
+  effect_size <- (stats$mn[1]-stats$mn[2])/(pooled_sd)
+  return(data.frame(t_stat=t_stat, effect_size=effect_size, p_val=p_val))
+}
+
+t_test_function(data=peng_AC,val_col="body_mass_g",group_col="species")
+```
+
+```{r}
+t.test(body_mass_g~species, data=peng_AC,var.equal = FALSE)
+
+```
+
+```{r}
+num_trials<-10000
+sample_size<-30
+mu_0<-1
+mu_1<-1
+sigma_0<-3
+sigma_1<-3
+alpha<-0.05
+set.seed(0) # set random seed for reproducibility
+single_alpha_test_size_simulation_df <- data.frame(trial=seq(num_trials)) %>% # generate random Gaussian samples 
+  mutate(sample_0=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0)),
+sample_1=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_1,sd=sigma_1))) %>% # generate p values
+  mutate(p_value=pmap(.l=list(trial,sample_0,sample_1),
+                      .f=~t.test(..2,..3,var.equal = TRUE)$p.value))%>%
+  # type I error
+  mutate(type_1_error=p_value<alpha)
+
+
+single_alpha_test_size_simulation_df %>% pull(type_1_error) %>%
+mean() # estimate of coverage probability
+  
+
+```
+
+```{r}
+num_trials<-10000
+sample_size<-30
+mu_0<-1
+mu_1<-1
+sigma_0<-3
+sigma_1<-3
+set.seed(0) # set random seed for reproducibility
+
+single_alpha_test_size_simulation_df <- data.frame(trial=seq(num_trials)) %>% # generate random Gaussian samples 
+  mutate(sample_0=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_0,sd=sigma_0)),
+sample_1=map(.x=trial,.f=~rnorm(n=sample_size,mean=mu_1,sd=sigma_1))) %>% # generate p values
+  mutate(p_value=pmap(.l=list(trial,sample_0,sample_1),
+                      .f=~t.test(..2,..3,var.equal = TRUE)$p.value))
+
+alpha_list = seq(0.01, 0.25, 0.01)
+compute_test_size <- function(alpha){
+# type I error
+type_1_error = single_alpha_test_size_simulation_df$p_value<alpha
+
+return (mean(type_1_error)) # estimate of coverage probability
+}
+```
+
+```{r}
+multiple_alpha_test_size_simulation_df <- data.frame(alpha=alpha_list) %>%
+  mutate(test_size = map_dbl(alpha, compute_test_size))
+multiple_alpha_test_size_simulation_df %>% ggplot(aes(x=alpha, y=test_size)) +
+  geom_point() + ylab('Test size') + theme_bw()
+
+```
+
+```{r}
+
+num_trials<-10000
+n_0<-30
+n_1<-30
+mu_0<-3
+mu_1<-4
+sigma_0<-2
+sigma_1<-2
+alpha<-0.05
+set.seed(0) # set random seed for reproducibility
+
+data.frame(trial=seq(num_trials)) %>%
+# generate random Gaussian samples
+mutate(sample_0 = map(.x=trial,.f =~ rnorm(n=n_0,mean=mu_0,sd=sigma_0)),
+sample_1 = map(.x=trial,.f =~ rnorm(n=n_1,mean=mu_1,sd=sigma_1))) %>% # for each sample, generate p value; check examples of pmap() with ?map 
+  mutate(p_value=pmap(.l = list(trial,sample_0,sample_1),
+.f =~ t.test(..2, ..3, var.equal = TRUE)$p.value)) %>% # estimate of coverage probability
+mutate(reject_null = p_value<alpha ) %>% # extract a column
+pull(reject_null) %>%
+# compute probability
+mean()
+```
+
+```{r}
+num_trials<-10000
+n_0<-30
+n_1<-30
+mu_0<-3
+mu_1<-4
+sigma_0<-2
+sigma_1<-2
+alpha<-0.05
+set.seed(0) # set random seed for reproducibility
+single_alpha_power_df <- data.frame(trial=seq(num_trials)) %>%
+# generate random Gaussian samples
+mutate(sample_0 = map(.x=trial,.f =~ rnorm(n=n_0,mean=mu_0,sd=sigma_0)),
+sample_1 = map(.x=trial,.f =~ rnorm(n=n_1,mean=mu_1,sd=sigma_1))) %>% # for each sample, generate p value; check examples of pmap() with ?map 
+  mutate(p_value=pmap(.l = list(trial,sample_0,sample_1),
+                      .f =~ t.test(..2, ..3, var.equal = TRUE)$p.value))
+compute_power <- function(alpha){
+reject_null <- single_alpha_power_df$p_value < alpha
+
+return (mean(reject_null))
+}
+
+```
+
+```{r}
+multiple_alpha_power_df <- data.frame(alpha=seq(0.01, 0.25, 0.01)) %>%
+  mutate(power= map_dbl(alpha, compute_power))
+multiple_alpha_power_df %>% ggplot(aes(x=alpha, y=power)) +
+  geom_point() + ylab('Power') + theme_bw()
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
